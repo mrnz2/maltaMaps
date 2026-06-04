@@ -33,6 +33,7 @@ const emit = defineEmits<{
 
 const { createPlace } = usePlaces()
 
+/** Stan sesji — @nuxtjs/supabase */
 const user = useSupabaseUser()
 const isAuthHydrated = ref(false)
 
@@ -61,8 +62,6 @@ const newPlaceForm = reactive({
 const showFormPanel = computed(
   () => newPlaceForm.lat !== null && newPlaceForm.lng !== null,
 )
-
-const isLoggedIn = computed(() => isAuthHydrated.value && !!user.value)
 
 const categoryOptions: { value: MapPinCategory; label: string }[] = [
   { value: 'beach', label: 'Plaża' },
@@ -171,7 +170,8 @@ function placeTemporaryMarker(lng: number, lat: number) {
 }
 
 function handleMapClick(e: mapboxgl.MapMouseEvent) {
-  if (!isAddingMode.value || !isLoggedIn.value) return
+  if (!user.value) return
+  if (!isAddingMode.value) return
 
   const { lng, lat } = e.lngLat
   newPlaceForm.lng = lng
@@ -193,7 +193,7 @@ function cancelAddingMode() {
 }
 
 function toggleAddingMode() {
-  if (!isLoggedIn.value) return
+  if (!user.value) return
 
   if (isAddingMode.value) {
     cancelAddingMode()
@@ -228,10 +228,7 @@ function validateForm(): string | null {
 }
 
 async function submitNewPlace() {
-  if (!isLoggedIn.value) {
-    formError.value = 'Musisz być zalogowany, aby dodać miejsce.'
-    return
-  }
+  if (!user.value) return
 
   const validationError = validateForm()
   if (validationError) {
@@ -489,8 +486,8 @@ watch(isAddingMode, (active) => {
   else if (mapInstance.value) setMapCursor('crosshair')
 })
 
-watch(isLoggedIn, (loggedIn) => {
-  if (!loggedIn && isAddingMode.value) cancelAddingMode()
+watch(user, (currentUser) => {
+  if (!currentUser && isAddingMode.value) cancelAddingMode()
 })
 
 onMounted(async () => {
@@ -529,9 +526,14 @@ defineExpose({ flyToPin, requestUserLocation, toggleAddingMode })
       </p>
     </div>
 
-    <!-- Dodawanie miejsc — tylko dla zalogowanych -->
-    <div class="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[14rem] flex-col gap-2 md:left-4 md:top-4">
-      <template v-if="isAuthHydrated && isLoggedIn">
+    <!-- Dodawanie miejsc — UI zależne od sesji Supabase -->
+    <div
+      class="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[17rem] flex-col gap-2 md:left-4 md:top-4"
+      role="region"
+      aria-label="Dodawanie miejsca"
+    >
+      <!-- Zalogowany: przycisk trybu dodawania -->
+      <template v-if="isAuthHydrated && user">
         <button
           type="button"
           class="pointer-events-auto inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold shadow-lg ring-1 transition-colors"
@@ -555,13 +557,20 @@ defineExpose({ flyToPin, requestUserLocation, toggleAddingMode })
         </p>
       </template>
 
-      <p
+      <!-- Gość: brak przycisku, boks informacyjny -->
+      <div
         v-else-if="isAuthHydrated"
-        class="pointer-events-auto flex items-start gap-2 rounded-xl bg-white/95 px-3 py-2 text-xs leading-snug text-slate-600 shadow-lg ring-1 ring-slate-200/80 backdrop-blur-sm"
+        class="pointer-events-auto flex items-start gap-2.5 rounded-xl bg-slate-100 px-3.5 py-3 shadow-md ring-1 ring-slate-200/90"
       >
-        <Lock class="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
-        Zaloguj się, aby dodać nowe miejsce na mapie.
-      </p>
+        <span
+          class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-200/80 text-slate-500"
+        >
+          <Lock class="h-4 w-4" aria-hidden="true" />
+        </span>
+        <p class="text-xs leading-relaxed text-slate-600">
+          Zaloguj się, aby dodawać nowe miejsca i kody promocyjne na mapie Malty.
+        </p>
+      </div>
     </div>
 
     <!-- Panel formularza -->
@@ -572,7 +581,7 @@ defineExpose({ flyToPin, requestUserLocation, toggleAddingMode })
       leave-to-class="opacity-0 translate-x-2"
     >
       <aside
-        v-if="showFormPanel && isLoggedIn"
+        v-if="showFormPanel && user"
         class="absolute bottom-0 left-0 right-0 z-20 max-h-[min(85vh,28rem)] overflow-y-auto rounded-t-2xl border border-slate-200/90 bg-white/95 p-4 shadow-2xl backdrop-blur-md md:bottom-auto md:left-4 md:right-auto md:top-16 md:max-h-[calc(100%-5rem)] md:w-[min(100%,22rem)] md:rounded-2xl"
         aria-label="Formularz nowego miejsca"
       >
