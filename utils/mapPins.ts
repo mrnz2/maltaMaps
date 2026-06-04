@@ -11,5 +11,6 @@ export function placesToMapPins(places: Place[]): MapPin[] {
     category: p.category,
     promoCode: p.promo_code,
     imageUrl: p.image_url ?? null,
+    isPublic: p.is_public,
   }))
 }

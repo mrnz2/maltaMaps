@@ -12,6 +12,9 @@ export const mockPlaces: Place[] = [
     category: 'food',
     promo_code: 'VALLETTA10',
     image_url: 'https://images.unsplash.com/photo-1555992336-fb0d29498b13?w=640&q=80',
+    user_id: null,
+    is_public: true,
+    request_public: false,
   },
   {
     id: 'blue-lagoon',
@@ -23,6 +26,9 @@ export const mockPlaces: Place[] = [
     category: 'beach',
     promo_code: 'LAGOON15',
     image_url: 'https://images.unsplash.com/photo-1539650116574-750c20768742?w=640&q=80',
+    user_id: null,
+    is_public: true,
+    request_public: false,
   },
   {
     id: 'mdina',
@@ -34,5 +40,8 @@ export const mockPlaces: Place[] = [
     category: 'coupon',
     promo_code: 'MDINA20',
     image_url: 'https://images.unsplash.com/photo-1577587231917-9ce28425be62?w=640&q=80',
+    user_id: null,
+    is_public: true,
+    request_public: false,
   },
 ]

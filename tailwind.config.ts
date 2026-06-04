@@ -28,6 +28,7 @@ export default {
     'animate-pulse',
     'ring-emerald-400/40',
     'bg-emerald-500',
+    'opacity-75',
   ],
   theme: {
     extend: {

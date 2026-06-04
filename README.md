@@ -51,15 +51,22 @@ Bez Supabase działają **3 mockowe pinezki** (Valletta, Blue Lagoon, Mdina).
 
 Schemat tabeli `places` — w komentarzu w `composables/usePlaces.ts`.
 
-## Logowanie (Magic Link)
+## Logowanie (e-mail + hasło)
 
 Komponent **`components/AuthWidget.vue`** jest wpięty w **Sidebar** (pod nagłówkiem „Malta Maps”).
 
-1. W Supabase: **Authentication → URL Configuration** — dodaj `http://localhost:3000/` (i domenę produkcyjną) do **Redirect URLs**.
-2. Włącz **Email** provider i szablon Magic Link.
-3. Użytkownik wpisuje e-mail → link w skrzynce → po kliknięciu wraca na `/` jako zalogowany.
+1. W Supabase: **Authentication → Providers → Email** — włącz logowanie e-mailem (opcjonalnie wyłącz „Confirm email” na dev).
+2. Użytkownik loguje się (`signInWithPassword`) lub rejestruje (`signUp`).
+3. Po zalogowaniu `useSupabaseUser()` odblokowuje przycisk „＋ Dodaj miejsce” na mapie.
 
 **Dodawanie pinezek:** przycisk „＋ Dodaj miejsce” na mapie widoczny tylko po zalogowaniu (`useSupabaseUser()` w `Map.client.vue`).
+
+### Prywatne i publiczne miejsca (`is_public`, `user_id`)
+
+- **Gość:** widzi tylko `is_public = true`.
+- **Zalogowany:** publiczne + własne prywatne (filtr `.or()` w `usePlaces.ts`).
+- **Nowe pinezki:** zapis z `user_id`, `is_public: false` oraz `request_public` (checkbox w formularzu). Admin po akceptacji ustawia `is_public: true`.
+- **Mapa:** prywatne markery mają `opacity-75` i ikonę kłódki.
 
 ## Stack
 

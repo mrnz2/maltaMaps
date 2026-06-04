@@ -55,6 +55,7 @@ const newPlaceForm = reactive({
   category: 'beach' as MapPinCategory,
   promo_code: '',
   image_url: '',
+  request_public: false,
   lat: null as number | null,
   lng: null as number | null,
 })
@@ -125,6 +126,7 @@ function pinSignature(pin: MapPin): string {
     description: pin.description,
     promoCode: pin.promoCode,
     imageUrl: pin.imageUrl,
+    isPublic: pin.isPublic,
   })
 }
 
@@ -134,6 +136,7 @@ function resetNewPlaceForm() {
   newPlaceForm.category = 'beach'
   newPlaceForm.promo_code = ''
   newPlaceForm.image_url = ''
+  newPlaceForm.request_public = false
   newPlaceForm.lat = null
   newPlaceForm.lng = null
   formError.value = null
@@ -230,6 +233,12 @@ function validateForm(): string | null {
 async function submitNewPlace() {
   if (!user.value) return
 
+  const userId = user.value.id
+  if (!userId) {
+    formError.value = 'Nie można ustalić ID użytkownika. Zaloguj się ponownie.'
+    return
+  }
+
   const validationError = validateForm()
   if (validationError) {
     formError.value = validationError
@@ -248,6 +257,8 @@ async function submitNewPlace() {
       image_url: newPlaceForm.image_url.trim() || null,
       lat: newPlaceForm.lat!,
       lng: newPlaceForm.lng!,
+      request_public: newPlaceForm.request_public,
+      user_id: userId,
     })
 
     removeTemporaryMarker()
@@ -262,15 +273,38 @@ async function submitNewPlace() {
   }
 }
 
+const LOCK_BADGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+
 function createMarkerElement(pin: MapPin): HTMLDivElement {
   const category: MapPinCategory =
     pin.category === 'food' || pin.category === 'coupon' ? pin.category : 'beach'
+
+  const wrapper = document.createElement('div')
+  wrapper.className = 'relative flex flex-col items-center'
+
   const el = document.createElement('div')
-  el.className = MARKER_CLASSES[category]
+  el.className = [
+    MARKER_CLASSES[category],
+    !pin.isPublic ? 'opacity-75' : '',
+  ].join(' ')
   el.setAttribute('role', 'button')
-  el.setAttribute('aria-label', pin.name)
+  el.setAttribute(
+    'aria-label',
+    pin.isPublic ? pin.name : `${pin.name} (prywatne)`,
+  )
   el.innerHTML = ICONS[category]
-  return el
+  wrapper.appendChild(el)
+
+  if (!pin.isPublic) {
+    const badge = document.createElement('span')
+    badge.className =
+      'absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700/90 ring-1 ring-white shadow-sm'
+    badge.setAttribute('aria-hidden', 'true')
+    badge.innerHTML = LOCK_BADGE_SVG
+    wrapper.appendChild(badge)
+  }
+
+  return wrapper
 }
 
 function buildPopupHtml(pin: MapPin): string {
@@ -299,10 +333,15 @@ function buildPopupHtml(pin: MapPin): string {
       })()
     : ''
 
+  const visibilityBadge = !pin.isPublic
+    ? `<span class="mb-2 inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">🔒 Prywatne / oczekuje na publikację</span>`
+    : ''
+
   return `
     <article class="overflow-hidden rounded-xl bg-white text-left shadow-none">
       ${imageBlock}
       <div class="p-4">
+        ${visibilityBadge}
         <h3 class="pr-6 text-base font-bold leading-snug text-slate-900">${escapeHtml(pin.name)}</h3>
         <p class="mt-1.5 text-sm leading-relaxed text-slate-500">${escapeHtml(pin.description)}</p>
         ${promoBlock}
@@ -679,6 +718,23 @@ defineExpose({ flyToPin, requestUserLocation, toggleAddingMode })
               class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-malta-sea focus:outline-none focus:ring-1 focus:ring-malta-sea"
             />
           </div>
+
+          <label
+            class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 transition-colors has-[:checked]:border-malta-sea/40 has-[:checked]:bg-sky-50/50"
+          >
+            <input
+              id="place-request-public"
+              v-model="newPlaceForm.request_public"
+              type="checkbox"
+              class="mt-0.5 h-4 w-4 rounded border-slate-300 text-malta-sea focus:ring-malta-sea"
+            />
+            <span class="text-xs leading-relaxed text-slate-600">
+              Chcę, aby to miejsce było publiczne (wyślij do moderacji przez administratora).
+              <span class="mt-1 block text-[10px] text-slate-400">
+                Do czasu akceptacji pinezka pozostanie prywatna i widoczna tylko dla Ciebie.
+              </span>
+            </span>
+          </label>
 
           <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
             {{ formError }}
